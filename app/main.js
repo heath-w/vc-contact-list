@@ -16,7 +16,11 @@ var contactList = new Vue( {
 		newPhone : '',
 		newEmail : '',
 
-		contactList : [ 
+		nextId : 1,
+		contactList : [], 
+		
+		nextIdSeeds : 5,
+		contactSeeds : [ 
 			{
 				id : 1,
 				name : 'Albus Dumbledore',
@@ -35,7 +39,7 @@ var contactList = new Vue( {
 				phone : '502-444-1010',
 				email : 'potions.maybe.dark.arts@hogwarts.edu'
 			},
-		], // Stored data, unsorted
+		], // Seed data
 		
 	},
 
@@ -50,19 +54,17 @@ var contactList = new Vue( {
 
 	methods : {
 		alphabetizeContacts : alphabetizeContacts,
+		addContact : addContact,
 		removeContact : removeContact,
 		findContact : findContact,
-		validateForm : validateForm
-
-		/*
-		addContact : addContact,
-		
-		validatePhoneNumber : validatePhoneNumber
-		*/
+		validateForm : validateForm,
+		loadContacts : loadContacts,
+		saveContacts : saveContacts
 	},
 
 });
 
+// Computed fields
 function computedContacts() {
 	return this.contactList.sort( this.alphabetizeContacts );
 }
@@ -83,10 +85,12 @@ function badPhone() {
 	return ! pattern.test( this.newPhone );
 }
 
+// Before Mount method
 function beforeMount() {
-
+	this.loadContacts();
 }
 
+// Methods
 function alphabetizeContacts( a, b ) {
 	var aName = a.name.toLowerCase();
 	var bName = b.name.toLowerCase();
@@ -102,59 +106,38 @@ function alphabetizeContacts( a, b ) {
 	}
 }
 
-function removeContact( id ) {
-	var contactIndex = this.findContact( id );
-	this.contacts.splice( contactIndex, 1 );
-}
+function addContact( event ) {
+	console.log( 'addContact' );
+	// console.log( 'addContact::this.missingName: ', this.missingName );
+	// console.log( 'addContact::this.badPhone: ', this.badPhone );
+	// console.log( 'addContact::this.badEmail: ', this.badEmail );
 
-function findContact( id ) {
-	return this.contacts.findIndex( 
-		function( contact ) { 
-			return ( id === contact.id ); 
-		} 
-	);
-}
-
-function validateForm() {
-	this.attemptingSave = true;
-}
-
-
-
-/*
-function validatePhoneNumber() {
-	var phoneRe = /^[0-9\-\+\s\(\)]*$/;
-
-	var isValid = phoneRe.test( this.newPhoneNumber );
-
-	console.log( 'validatePhoneNumber-isalid:', isValid );
-
-	return isValid;
-}
-
-function addContact() {
-	if ( ! this.validatePhoneNumber( this.newPhoneNumber ) ) {
-		return;
-	}
-	else {
-		this.contacts.push(
-			{
-				id : this.nextContactId++,
-				name : this.newName,
-				phoneNumber : this.newPhoneNumber
-			}
-		);
+	if ( ! this.missingName && ! this.badPhone && ! this.badEmail ) {
+		console.log( 'addContact::Data is good, create contact' );
+		this.contactList.push({
+			id : this.nextId++,
+			name : this.newName,
+			phone : this.newPhone,
+			email : this.newEmail
+		});
 
 		this.newName = '';
-		this.newPhoneNumber = '';
-	}
+		this.newPhone = '';
+		this.newEmail = '';
+		this.attemptingSave = false;
 
-	
+		this.saveContacts();
+	}
+	else {
+		console.log( 'addContact::Data is bad, do not create contact' );
+	}
 }
 
 function removeContact( id ) {
 	var contactIndex = this.findContact( id );
 	this.contacts.splice( contactIndex, 1 );
+
+	this.saveContacts();
 }
 
 function findContact( id ) {
@@ -164,4 +147,38 @@ function findContact( id ) {
 		} 
 	);
 }
-*/
+
+function validateForm( event ) {
+	console.log( 'validateForm' );
+	console.log( 'validateForm::event: ', event );
+	this.attemptingSave = true;
+
+	if ( this.missingName || this.badPhone || this.badEmail ) {
+		console.log( 'validateForm::data is bad, preventdefault' );
+		event.preventDefault();
+	}
+	else {
+		console.log( 'validateForm::data is good, add contact`' );
+		this.addContact( event );
+	}
+}
+
+function loadContacts() {
+	console.log( 'loadContacts' );
+
+	this.mextId = localStorage.getItem( 'nextId' );
+	this.contactList = JSON.parse( localStorage.getItem( 'contactList' ) );
+
+	if ( this.contactList === null ) {
+		this.mextId = this.nextIdSeed;
+		this.contactList = this.contactSeeds;
+	}
+}
+
+function saveContacts() {
+	console.log( 'saveContacts' );
+
+	localStorage.setItem( 'contactList', JSON.stringify( this.contactList ) );
+	localStorage.setItem( 'nextId', this.nextId );
+
+}
